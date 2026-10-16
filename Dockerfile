@@ -1,12 +1,30 @@
+# syntax=docker/dockerfile:1
 FROM ubuntu:26.04
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl git nodejs npm \
- && rm -rf /var/lib/apt/lists/* \
- && npm install -g @opencode/cli@beta
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl dnsutils gh git nodejs npm openssh-client
 
-# Ubuntu 24.04 and later ship a built-in "ubuntu" user with UID 1000.
-# Use that user instead of creating a new one, since useradd -u 1000 would fail.
+# Chromium OS libraries, then the browser into a shared path.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g playwright@latest \
+ && npx playwright install-deps chromium \
+ && npx playwright install chromium
+
+# OpenCode 2 beta. Pinned to the version you chose; change to @beta to track the latest beta.
+ARG OPENCODE2_VERSION=2.0.31
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g @opencode/cli@${OPENCODE2_VERSION}
+
+# flyctl, installed system-wide.
+RUN curl -fsSL https://fly.io/install.sh | FLYCTL_INSTALL=/usr/local sh
+
+# Writable state folders for opencode.
+RUN mkdir -p /home/ubuntu/.local/share/opencode /home/ubuntu/.local/state \
+ && chown -R ubuntu:ubuntu /home/ubuntu/.local
+
 USER ubuntu
 WORKDIR /workspace
 ENTRYPOINT ["opencode"]
