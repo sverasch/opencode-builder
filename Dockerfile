@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.npm \
  && npx playwright install chromium
 
 # OpenCode 2 beta. Pinned to the version you chose; change to @beta to track the latest beta.
-ARG OPENCODE2_VERSION=2.0.31
+ARG OPENCODE2_VERSION=2.0.32
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g @opencode/cli@${OPENCODE2_VERSION}
 
